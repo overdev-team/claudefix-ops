@@ -1,0 +1,23 @@
+name: CLAUDEFIX Product Hunt launch check
+
+on:
+  schedule:
+    - cron: '15 7,10 29 9 *'
+  workflow_dispatch:
+
+jobs:
+  verify-launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify scheduled launch date
+        id: date
+        run: |
+          if [ "$(date -u +%Y-%m-%d)" = '2026-09-29' ]; then echo 'run=true' >> "$GITHUB_OUTPUT"; else echo 'run=false' >> "$GITHUB_OUTPUT"; fi
+      - name: Check Product Hunt and site
+        if: steps.date.outputs.run == 'true'
+        run: node scripts/check-ph-launch.mjs

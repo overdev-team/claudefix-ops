@@ -1,0 +1,25 @@
+name: Sitemap health
+
+on:
+  schedule:
+    - cron: '13,43 * * * *'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe Googlebot sitemap response
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            headers=$(mktemp)
+            status=$(curl -sS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 -A 'Googlebot' 'https://claudefix.store/sitemap.xml')
+            ray=$(awk 'tolower($1)=="cf-ray:" {print $2}' "$headers" | tr -d '\r')
+            type=$(awk 'tolower($1)=="content-type:" {print $2}' "$headers" | tr -d '\r')
+            echo "attempt=$attempt status=$status content_type=$type cf_ray=$ray"
+            rm "$headers"
+            if [ "$status" != 200 ] || [[ "$type" != application/xml* ]]; then exit 1; fi
+            sleep 2
+          done
